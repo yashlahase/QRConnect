@@ -10,7 +10,9 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  Image
+  Image,
+  Pressable,
+  Clipboard
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -34,6 +36,7 @@ export default function App() {
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
 
 
   const handleBarCodeScanned = ({ type, data }) => {
@@ -98,39 +101,34 @@ export default function App() {
     }
   };
 
-  // Welcome Screen Component
-  const WelcomeScreen = () => (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.welcomeContainer}>
-        <View style={styles.logoContainer}>
-          <View style={styles.qrIcon}>
-            <Text style={styles.qrIconText}>QR</Text>
+  // Get Started Screen Component
+  const GetStartedScreen = () => (
+    <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
+      <View style={styles.getStartedContainer}>
+        <View style={styles.getStartedContent}>
+          <View style={styles.logoContainer}>
+            <View style={styles.qrIcon}>
+              <Text style={styles.qrIconText}>QR</Text>
+            </View>
+            <Text style={[styles.appName, isDarkMode && styles.darkAppName]}>QRConnect</Text>
+            <Text style={[styles.subtitle, isDarkMode && styles.darkSubtitle]}>Get Started</Text>
+            <Text style={[styles.description, isDarkMode && styles.darkDescription]}>
+              Create your digital business card and start sharing your contact information instantly with QR codes.
+            </Text>
           </View>
-          <Text style={styles.appName}>QRConnect</Text>
-          <Text style={styles.tagline}>Share your contact instantly</Text>
-        </View>
-        
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={[styles.authButton, styles.emailButton]}
-            onPress={() => setCurrentScreen('profile')}
-          >
-            <Text style={styles.authButtonText}>Continue with Email</Text>
-          </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={[styles.authButton, styles.googleButton]}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.getStartedButton,
+              pressed && styles.getStartedButtonPressed
+            ]}
             onPress={() => setCurrentScreen('profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Get Started"
+            accessibilityHint="Navigate to profile creation"
           >
-            <Text style={styles.authButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.authButton, styles.appleButton]}
-            onPress={() => setCurrentScreen('profile')}
-          >
-            <Text style={[styles.authButtonText, styles.appleButtonText]}>Continue with Apple</Text>
-          </TouchableOpacity>
+            <Text style={styles.getStartedButtonText}>Get Started</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -144,17 +142,92 @@ export default function App() {
     const [localLinkedin, setLocalLinkedin] = useState(userProfile.linkedin);
     const [localInstagram, setLocalInstagram] = useState(userProfile.instagram);
     const [localWebsite, setLocalWebsite] = useState(userProfile.website);
+    const [errors, setErrors] = useState({});
+
+    const isValidEmail = (email) => {
+      const trimmedEmail = email.trim();
+      if (trimmedEmail.length < 5) return false;
+      if (!trimmedEmail.includes('@')) return false;
+      
+      const parts = trimmedEmail.split('@');
+      if (parts.length !== 2) return false;
+      
+      const [username, domain] = parts;
+      if (username.length === 0 || domain.length === 0) return false;
+      if (!domain.includes('.')) return false;
+      
+      const domainParts = domain.split('.');
+      if (domainParts.length < 2) return false;
+      if (domainParts[domainParts.length - 1].length < 2) return false;
+      
+      return true;
+    };
+
+    const cleanPhoneNumber = (phone) => {
+      let cleaned = '';
+      for (let i = 0; i < phone.length; i++) {
+        const char = phone[i];
+        if (char === ' ' || char === '-' || char === '(' || char === ')') {
+          continue;
+        }
+        cleaned += char;
+      }
+      return cleaned;
+    };
+
+    const isValidPhone = (phone) => {
+      const cleanPhone = cleanPhoneNumber(phone);
+      if (cleanPhone.length < 10) return false;
+      if (cleanPhone.length > 15) return false;
+      
+      for (let i = 0; i < cleanPhone.length; i++) {
+        const char = cleanPhone[i];
+        if (i === 0 && char === '+') continue;
+        if (char < '0' || char > '9') return false;
+      }
+      
+      return true;
+    };
+
+    const validateFields = () => {
+      const newErrors = {};
+      
+      if (!localName.trim()) {
+        newErrors.name = 'Full name is required';
+      }
+      
+      if (!localPhone.trim()) {
+        newErrors.phone = 'Phone number is required';
+      } else if (!isValidPhone(localPhone)) {
+        newErrors.phone = 'Please enter a valid phone number';
+      }
+      
+      if (!localEmail.trim()) {
+        newErrors.email = 'Email address is required';
+      } else if (!isValidEmail(localEmail)) {
+        newErrors.email = 'Please enter a valid email address';
+      }
+      
+      return newErrors;
+    };
 
     const handleSave = () => {
-      setUserProfile({ 
-        name: localName, 
-        phone: localPhone, 
-        email: localEmail, 
-        linkedin: localLinkedin, 
-        instagram: localInstagram, 
-        website: localWebsite 
-      });
-      setCurrentScreen('myqr');
+      const validationErrors = validateFields();
+      setErrors(validationErrors);
+      
+      if (Object.keys(validationErrors).length === 0) {
+        setUserProfile({ 
+          name: localName.trim(), 
+          phone: localPhone.trim(), 
+          email: localEmail.trim(), 
+          linkedin: localLinkedin.trim(), 
+          instagram: localInstagram.trim(), 
+          website: localWebsite.trim() 
+        });
+        setCurrentScreen('myqr');
+      } else {
+        Alert.alert('Required Fields Missing', 'Please fill in all required fields correctly.');
+      }
     };
 
     return (
@@ -166,72 +239,159 @@ export default function App() {
           <Text style={[styles.screenTitle, isDarkMode && styles.darkText]}>Create Your Profile</Text>
           
           <View style={styles.formContainer}>
-            <TextInput
-              style={[styles.input, isDarkMode && styles.darkInput]}
-              placeholder="Full Name"
-              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-              value={localName}
-              onChangeText={setLocalName}
-              autoCorrect={false}
-              autoCapitalize="words"
-              blurOnSubmit={false}
-            />
+            {/* Required Fields */}
+            <View style={styles.inputContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.inputLabel, isDarkMode && styles.darkInputLabel]}>
+                  Full Name
+                </Text>
+                <Text style={styles.requiredIndicator}> *</Text>
+              </View>
+              <TextInput
+                style={[
+                  styles.input, 
+                  isDarkMode && styles.darkInput,
+                  errors.name && styles.inputError
+                ]}
+                placeholder="Enter your full name"
+                placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                value={localName}
+                onChangeText={(text) => {
+                  setLocalName(text);
+                  if (errors.name) {
+                    setErrors(prev => ({ ...prev, name: null }));
+                  }
+                }}
+                autoCorrect={false}
+                autoCapitalize="words"
+                textContentType="name"
+                returnKeyType="next"
+              />
+              {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+            </View>
             
-            <TextInput
-              style={[styles.input, isDarkMode && styles.darkInput]}
-              placeholder="Phone Number"
-              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-              value={localPhone}
-              onChangeText={setLocalPhone}
-              keyboardType="phone-pad"
-              autoCorrect={false}
-              blurOnSubmit={false}
-            />
+            <View style={styles.inputContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.inputLabel, isDarkMode && styles.darkInputLabel]}>
+                  Phone Number
+                </Text>
+                <Text style={styles.requiredIndicator}> *</Text>
+              </View>
+              <TextInput
+                style={[
+                  styles.input, 
+                  isDarkMode && styles.darkInput,
+                  errors.phone && styles.inputError
+                ]}
+                placeholder="Enter your phone number"
+                placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                value={localPhone}
+                onChangeText={(text) => {
+                  setLocalPhone(text);
+                  if (errors.phone) {
+                    setErrors(prev => ({ ...prev, phone: null }));
+                  }
+                }}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                autoCorrect={false}
+                returnKeyType="next"
+              />
+              {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+            </View>
             
-            <TextInput
-              style={[styles.input, isDarkMode && styles.darkInput]}
-              placeholder="Email Address"
-              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-              value={localEmail}
-              onChangeText={setLocalEmail}
-              keyboardType="email-address"
-              autoCorrect={false}
-              autoCapitalize="none"
-              blurOnSubmit={false}
-            />
+            <View style={styles.inputContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.inputLabel, isDarkMode && styles.darkInputLabel]}>
+                  Email Address
+                </Text>
+                <Text style={styles.requiredIndicator}> *</Text>
+              </View>
+              <TextInput
+                style={[
+                  styles.input, 
+                  isDarkMode && styles.darkInput,
+                  errors.email && styles.inputError
+                ]}
+                placeholder="Enter your email address"
+                placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                value={localEmail}
+                onChangeText={(text) => {
+                  setLocalEmail(text);
+                  if (errors.email) {
+                    setErrors(prev => ({ ...prev, email: null }));
+                  }
+                }}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+            </View>
             
-            <TextInput
-              style={[styles.input, isDarkMode && styles.darkInput]}
-              placeholder="LinkedIn Profile"
-              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-              value={localLinkedin}
-              onChangeText={setLocalLinkedin}
-              autoCorrect={false}
-              autoCapitalize="none"
-              blurOnSubmit={false}
-            />
+            {/* Optional Fields */}
+            <View style={styles.inputContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.inputLabel, isDarkMode && styles.darkInputLabel]}>
+                  LinkedIn Profile
+                </Text>
+                <Text style={[styles.optionalIndicator, isDarkMode && styles.darkOptionalIndicator]}> (optional)</Text>
+              </View>
+              <TextInput
+                style={[styles.input, isDarkMode && styles.darkInput]}
+                placeholder="https://linkedin.com/in/yourprofile"
+                placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                value={localLinkedin}
+                onChangeText={setLocalLinkedin}
+                keyboardType="url"
+                textContentType="URL"
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+            </View>
             
-            <TextInput
-              style={[styles.input, isDarkMode && styles.darkInput]}
-              placeholder="Instagram Handle"
-              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-              value={localInstagram}
-              onChangeText={setLocalInstagram}
-              autoCorrect={false}
-              autoCapitalize="none"
-              blurOnSubmit={false}
-            />
+            <View style={styles.inputContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.inputLabel, isDarkMode && styles.darkInputLabel]}>
+                  Instagram Handle
+                </Text>
+                <Text style={[styles.optionalIndicator, isDarkMode && styles.darkOptionalIndicator]}> (optional)</Text>
+              </View>
+              <TextInput
+                style={[styles.input, isDarkMode && styles.darkInput]}
+                placeholder="@yourusername"
+                placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                value={localInstagram}
+                onChangeText={setLocalInstagram}
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+            </View>
             
-            <TextInput
-              style={[styles.input, isDarkMode && styles.darkInput]}
-              placeholder="Website URL"
-              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-              value={localWebsite}
-              onChangeText={setLocalWebsite}
-              autoCorrect={false}
-              autoCapitalize="none"
-              blurOnSubmit={false}
-            />
+            <View style={styles.inputContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.inputLabel, isDarkMode && styles.darkInputLabel]}>
+                  Website URL
+                </Text>
+                <Text style={[styles.optionalIndicator, isDarkMode && styles.darkOptionalIndicator]}> (optional)</Text>
+              </View>
+              <TextInput
+                style={[styles.input, isDarkMode && styles.darkInput]}
+                placeholder="https://yourwebsite.com"
+                placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                value={localWebsite}
+                onChangeText={setLocalWebsite}
+                keyboardType="url"
+                textContentType="URL"
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="done"
+              />
+            </View>
             
             <TouchableOpacity 
               style={styles.saveButton}
@@ -369,8 +529,12 @@ export default function App() {
   };
 
   // Memoized Contact Item Component to prevent unnecessary re-renders
-  const ContactItem = memo(({ item, isDarkMode }) => (
-    <View style={[styles.contactItem, isDarkMode && styles.darkContactItem]}>
+  const ContactItem = memo(({ item, isDarkMode, onPress }) => (
+    <TouchableOpacity 
+      style={[styles.contactItem, isDarkMode && styles.darkContactItem]}
+      onPress={() => onPress(item)}
+      activeOpacity={0.7}
+    >
       <View style={styles.contactAvatar}>
         <Text style={styles.contactAvatarText}>
           {item.name.charAt(0).toUpperCase()}
@@ -384,9 +548,118 @@ export default function App() {
         {item.instagram ? <Text style={[styles.contactPhone, isDarkMode && styles.darkSubtext]}>Instagram: {item.instagram}</Text> : null}
         {item.website ? <Text style={[styles.contactPhone, isDarkMode && styles.darkSubtext]}>Website: {item.website}</Text> : null}
       </View>
-    </View>
+    </TouchableOpacity>
   ));
 
+  // Contact Detail Screen Component
+  const ContactDetailScreen = ({ contact, isDarkMode, onBack }) => {
+    const copyToClipboard = (text, label) => {
+      Clipboard.setString(text);
+      Alert.alert('Copied', `${label} copied to clipboard`);
+    };
+
+    const contactInfoItems = [
+      { 
+        icon: '📞', 
+        label: 'Phone', 
+        value: contact.phone, 
+        action: () => {},
+        onLongPress: () => copyToClipboard(contact.phone, 'Phone number')
+      },
+      { 
+        icon: '✉️', 
+        label: 'Email', 
+        value: contact.email, 
+        action: () => {},
+        onLongPress: () => copyToClipboard(contact.email, 'Email address')
+      },
+      { 
+        icon: '💼', 
+        label: 'LinkedIn', 
+        value: contact.linkedin, 
+        action: () => {},
+        onLongPress: () => copyToClipboard(contact.linkedin, 'LinkedIn profile')
+      },
+      { 
+        icon: '📷', 
+        label: 'Instagram', 
+        value: contact.instagram, 
+        action: () => {},
+        onLongPress: () => copyToClipboard(contact.instagram, 'Instagram handle')
+      },
+      { 
+        icon: '🌐', 
+        label: 'Website', 
+        value: contact.website, 
+        action: () => {},
+        onLongPress: () => copyToClipboard(contact.website, 'Website URL')
+      }
+    ].filter(item => item.value);
+
+    return (
+      <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
+        <ScrollView style={styles.contactDetailContainer} showsVerticalScrollIndicator={false}>
+          <View style={styles.contactDetailHeader}>
+            <TouchableOpacity 
+              style={[styles.backButton, isDarkMode && styles.darkBackButton]}
+              onPress={onBack}
+            >
+              <Text style={[styles.backButtonText, isDarkMode && styles.darkBackButtonText]}>←</Text>
+            </TouchableOpacity>
+            <Text style={[styles.screenTitle, isDarkMode && styles.darkText, { flex: 1, textAlign: 'center', marginVertical: 0 }]}>
+              Contact Details
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <View style={[styles.contactCard, isDarkMode && styles.darkContactCard]}>
+            <View style={styles.contactCardHeader}>
+              <View style={styles.contactDetailAvatar}>
+                <Text style={styles.contactDetailAvatarText}>
+                  {contact.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={[styles.contactDetailName, isDarkMode && styles.darkContactDetailName]}>
+                {contact.name}
+              </Text>
+              <Text style={[styles.contactDetailRole, isDarkMode && styles.darkContactDetailRole]}>
+                Contact
+              </Text>
+            </View>
+
+            <View style={styles.contactInfoSection}>
+              {contactInfoItems.map((item, index) => (
+                <TouchableOpacity 
+                  key={index}
+                  style={[
+                    styles.contactInfoItem, 
+                    isDarkMode && styles.darkContactInfoItem,
+                    index === contactInfoItems.length - 1 && { borderBottomWidth: 0 }
+                  ]}
+                  onPress={item.action}
+                  onLongPress={item.onLongPress}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.contactInfoIcon, isDarkMode && styles.darkContactInfoIcon]}>
+                    <Text style={styles.contactInfoIconText}>{item.icon}</Text>
+                  </View>
+                  <View style={styles.contactInfoContent}>
+                    <Text style={[styles.contactInfoLabel, isDarkMode && styles.darkContactInfoLabel]}>
+                      {item.label}
+                    </Text>
+                    <Text style={[styles.contactInfoValue, isDarkMode && styles.darkContactInfoValue]}>
+                      {item.value}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  };
 
   // Contact List Screen Component with local search state
   const ContactsScreen = memo(({ contacts, isDarkMode }) => {
@@ -407,10 +680,16 @@ export default function App() {
       setSearchQuery(text);
     }, []);
     
+    // Handle contact selection
+    const handleContactPress = useCallback((contact) => {
+      setSelectedContact(contact);
+      setCurrentScreen('contactdetail');
+    }, []);
+    
     // Memoized render function for FlatList items
     const renderContactItem = useCallback(({ item }) => (
-      <ContactItem item={item} isDarkMode={isDarkMode} />
-    ), [isDarkMode]);
+      <ContactItem item={item} isDarkMode={isDarkMode} onPress={handleContactPress} />
+    ), [isDarkMode, handleContactPress]);
     
     return (
       <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
@@ -426,7 +705,6 @@ export default function App() {
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
-            blurOnSubmit={false}
             clearButtonMode="while-editing"
           />
           
@@ -503,7 +781,6 @@ export default function App() {
             onChangeText={setEditName}
             autoCorrect={false}
             autoCapitalize="words"
-            blurOnSubmit={false}
           />
           
           <TextInput
@@ -514,7 +791,6 @@ export default function App() {
             onChangeText={setEditPhone}
             keyboardType="phone-pad"
             autoCorrect={false}
-            blurOnSubmit={false}
           />
           
           <TextInput
@@ -526,7 +802,6 @@ export default function App() {
             keyboardType="email-address"
             autoCorrect={false}
             autoCapitalize="none"
-            blurOnSubmit={false}
           />
           
           <TextInput
@@ -537,7 +812,6 @@ export default function App() {
             onChangeText={setEditLinkedin}
             autoCorrect={false}
             autoCapitalize="none"
-            blurOnSubmit={false}
           />
           
           <TextInput
@@ -548,7 +822,6 @@ export default function App() {
             onChangeText={setEditInstagram}
             autoCorrect={false}
             autoCapitalize="none"
-            blurOnSubmit={false}
           />
           
           <TextInput
@@ -559,7 +832,6 @@ export default function App() {
             onChangeText={setEditWebsite}
             autoCorrect={false}
             autoCapitalize="none"
-            blurOnSubmit={false}
           />
           
           <TouchableOpacity 
@@ -647,7 +919,7 @@ export default function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'welcome':
-        return <WelcomeScreen />;
+        return <GetStartedScreen />;
       case 'profile':
         return <ProfileScreen />;
       case 'myqr':
@@ -656,10 +928,21 @@ export default function App() {
         return <ScanQRScreen />;
       case 'contacts':
         return <ContactsScreen contacts={contacts} isDarkMode={isDarkMode} />;
+      case 'contactdetail':
+        return selectedContact ? (
+          <ContactDetailScreen 
+            contact={selectedContact} 
+            isDarkMode={isDarkMode} 
+            onBack={() => {
+              setSelectedContact(null);
+              setCurrentScreen('contacts');
+            }}
+          />
+        ) : <ContactsScreen contacts={contacts} isDarkMode={isDarkMode} />;
       case 'profileedit':
         return <ProfileEditScreen />;
       default:
-        return <WelcomeScreen />;
+        return <GetStartedScreen />;
     }
   };
 
@@ -668,7 +951,7 @@ export default function App() {
       <View style={styles.app}>
         <StatusBar style={isDarkMode ? "light" : "dark"} />
         {renderScreen()}
-        {currentScreen !== 'welcome' && currentScreen !== 'profile' && <BottomNavigation />}
+        {currentScreen !== 'welcome' && currentScreen !== 'profile' && currentScreen !== 'contactdetail' && <BottomNavigation />}
       </View>
     </SafeAreaProvider>
   );
