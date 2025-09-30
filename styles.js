@@ -2,7 +2,7 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// Grayish-Black Dark Theme Colors
+
 const colors = {
   // Light theme colors
   primary: '#3B82F6',
@@ -16,12 +16,12 @@ const colors = {
   
   // Modern Grayish-Black Dark theme colors
   dark: {
-    background: '#0F0F0F',      // Very dark gray instead of pure black
-    surface: '#1A1A1A',         // Elevated surfaces (cards, inputs, nav bars)
-    text: '#FFFFFF',            // High contrast white text
-    textSecondary: '#B3B3B3',   // Lighter secondary text
-    textMuted: '#8A8A8A',       // Muted text with better contrast
-    border: '#333333',          // Lighter gray borders for better definition
+    background: '#0F0F0F',      
+    surface: '#1A1A1A',         
+    text: '#FFFFFF',            
+    textSecondary: '#B3B3B3',  
+    textMuted: '#8A8A8A',       
+    border: '#333333',          
   }
 };
 
