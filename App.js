@@ -12,12 +12,15 @@ import {
   Platform,
   Image,
   Pressable,
-  Clipboard
+  Clipboard,
+  Linking,
+  BackHandler
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import QRCode from 'react-native-qrcode-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from './styles';
 
 const { width, height } = Dimensions.get('window');
@@ -29,8 +32,7 @@ export default function App() {
     phone: '',
     email: '',
     linkedin: '',
-    instagram: '',
-    website: ''
+    instagram: ''
   });
   const [contacts, setContacts] = useState([]);
   const [scanned, setScanned] = useState(false);
@@ -38,6 +40,101 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
 
+  // Load user profile and contacts on app start
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load user profile
+        const savedProfile = await AsyncStorage.getItem('userProfile');
+        if (savedProfile) {
+          const profile = JSON.parse(savedProfile);
+          setUserProfile(profile);
+          // If profile exists, skip welcome screen
+          if (profile.name && profile.email && profile.phone) {
+            setCurrentScreen('myqr');
+          }
+        }
+
+        // Load contacts
+        const savedContacts = await AsyncStorage.getItem('contacts');
+        if (savedContacts) {
+          setContacts(JSON.parse(savedContacts));
+        }
+
+        // Load dark mode preference
+        const savedDarkMode = await AsyncStorage.getItem('isDarkMode');
+        if (savedDarkMode !== null) {
+          setIsDarkMode(JSON.parse(savedDarkMode));
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Save user profile whenever it changes
+  useEffect(() => {
+    const saveProfile = async () => {
+      try {
+        await AsyncStorage.setItem('userProfile', JSON.stringify(userProfile));
+      } catch (error) {
+        console.error('Error saving profile:', error);
+      }
+    };
+
+    if (userProfile.name || userProfile.email || userProfile.phone) {
+      saveProfile();
+    }
+  }, [userProfile]);
+
+  // Save contacts whenever they change
+  useEffect(() => {
+    const saveContacts = async () => {
+      try {
+        await AsyncStorage.setItem('contacts', JSON.stringify(contacts));
+      } catch (error) {
+        console.error('Error saving contacts:', error);
+      }
+    };
+
+    if (contacts.length > 0) {
+      saveContacts();
+    }
+  }, [contacts]);
+
+  // Save dark mode preference
+  useEffect(() => {
+    const saveDarkMode = async () => {
+      try {
+        await AsyncStorage.setItem('isDarkMode', JSON.stringify(isDarkMode));
+      } catch (error) {
+        console.error('Error saving dark mode:', error);
+      }
+    };
+
+    saveDarkMode();
+  }, [isDarkMode]);
+
+  // Handle Android back button and gestures
+  useEffect(() => {
+    const backAction = () => {
+      if (currentScreen === 'contactdetail') {
+        setSelectedContact(null);
+        setCurrentScreen('contacts');
+        return true; // Prevent default behavior (exit app)
+      }
+      return false; // Allow default behavior for other screens
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [currentScreen]);
 
   const handleBarCodeScanned = ({ type, data }) => {
     setScanned(true);
@@ -58,8 +155,7 @@ export default function App() {
           email: contactData.email || contacts[existingContactIndex].email,
           phone: contactData.phone || contacts[existingContactIndex].phone,
           linkedin: contactData.linkedin || contacts[existingContactIndex].linkedin || '',
-          instagram: contactData.instagram || contacts[existingContactIndex].instagram || '',
-          website: contactData.website || contacts[existingContactIndex].website || ''
+          instagram: contactData.instagram || contacts[existingContactIndex].instagram || ''
         };
 
         setContacts(prevContacts => {
@@ -83,8 +179,7 @@ export default function App() {
         email: contactData.email || '',
         phone: contactData.phone || '',
         linkedin: contactData.linkedin || '',
-        instagram: contactData.instagram || '',
-        website: contactData.website || ''
+        instagram: contactData.instagram || ''
       };
       setContacts(prevContacts => [...prevContacts, newContact]);
       Alert.alert(
@@ -105,7 +200,7 @@ export default function App() {
   const GetStartedScreen = () => (
     <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
       <View style={styles.getStartedContainer}>
-        <View style={styles.getStartedContent}>
+        <View style={[styles.getStartedContent, isDarkMode && styles.darkGetStartedContent]}>
           <View style={styles.logoContainer}>
             <View style={styles.qrIcon}>
               <Text style={styles.qrIconText}>QR</Text>
@@ -141,7 +236,6 @@ export default function App() {
     const [localEmail, setLocalEmail] = useState(userProfile.email);
     const [localLinkedin, setLocalLinkedin] = useState(userProfile.linkedin);
     const [localInstagram, setLocalInstagram] = useState(userProfile.instagram);
-    const [localWebsite, setLocalWebsite] = useState(userProfile.website);
     const [errors, setErrors] = useState({});
 
     const isValidEmail = (email) => {
@@ -221,8 +315,7 @@ export default function App() {
           phone: localPhone.trim(), 
           email: localEmail.trim(), 
           linkedin: localLinkedin.trim(), 
-          instagram: localInstagram.trim(), 
-          website: localWebsite.trim() 
+          instagram: localInstagram.trim()
         });
         setCurrentScreen('myqr');
       } else {
@@ -372,27 +465,6 @@ export default function App() {
               />
             </View>
             
-            <View style={styles.inputContainer}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.inputLabel, isDarkMode && styles.darkInputLabel]}>
-                  Website URL
-                </Text>
-                <Text style={[styles.optionalIndicator, isDarkMode && styles.darkOptionalIndicator]}> (optional)</Text>
-              </View>
-              <TextInput
-                style={[styles.input, isDarkMode && styles.darkInput]}
-                placeholder="https://yourwebsite.com"
-                placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-                value={localWebsite}
-                onChangeText={setLocalWebsite}
-                keyboardType="url"
-                textContentType="URL"
-                autoCorrect={false}
-                autoCapitalize="none"
-                returnKeyType="done"
-              />
-            </View>
-            
             <TouchableOpacity 
               style={styles.saveButton}
               onPress={handleSave}
@@ -412,8 +484,7 @@ export default function App() {
       phone: userProfile.phone || '',
       email: userProfile.email || '',
       linkedin: userProfile.linkedin || '',
-      instagram: userProfile.instagram || '',
-      website: userProfile.website || ''
+      instagram: userProfile.instagram || ''
     });
 
     return (
@@ -432,29 +503,6 @@ export default function App() {
               />
             </View>
             <Text style={[styles.qrCodeSubtext, isDarkMode && styles.darkSubtext]}>{userProfile.name || 'Your Name'}</Text>
-          </View>
-          
-          <View style={styles.qrButtonContainer}>
-            <TouchableOpacity 
-              style={styles.qrActionButton}
-              onPress={() => Alert.alert('Share', 'QR Code shared!')}
-            >
-              <Text style={styles.qrActionButtonText}>Share</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.qrActionButton}
-              onPress={() => Alert.alert('Save', 'QR Code saved to gallery!')}
-            >
-              <Text style={styles.qrActionButtonText}>Save</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.qrActionButton}
-              onPress={() => Alert.alert('Copy', 'QR Code link copied!')}
-            >
-              <Text style={styles.qrActionButtonText}>Copy</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>
@@ -528,6 +576,29 @@ export default function App() {
     );
   };
 
+  // Helper function to extract LinkedIn username from URL
+  const getLinkedInUsername = (linkedinUrl) => {
+    if (!linkedinUrl) return '';
+    
+    // Remove trailing slash if present
+    let url = linkedinUrl.trim().replace(/\/$/, '');
+    
+    // Extract username from various LinkedIn URL formats
+    // https://linkedin.com/in/username or linkedin.com/in/username
+    const match = url.match(/linkedin\.com\/in\/([^\/\?]+)/i);
+    if (match && match[1]) {
+      return match[1];
+    }
+    
+    // If it's already just a username (no URL), return it
+    if (!url.includes('/') && !url.includes('.')) {
+      return url;
+    }
+    
+    // Fallback: return the original
+    return linkedinUrl;
+  };
+
   // Memoized Contact Item Component to prevent unnecessary re-renders
   const ContactItem = memo(({ item, isDarkMode, onPress }) => (
     <TouchableOpacity 
@@ -544,9 +615,8 @@ export default function App() {
         <Text style={[styles.contactName, isDarkMode && styles.darkText]}>{item.name}</Text>
         {item.email ? <Text style={[styles.contactEmail, isDarkMode && styles.darkSubtext]}>{item.email}</Text> : null}
         {item.phone ? <Text style={[styles.contactPhone, isDarkMode && styles.darkSubtext]}>{item.phone}</Text> : null}
-        {item.linkedin ? <Text style={[styles.contactPhone, isDarkMode && styles.darkSubtext]}>LinkedIn: {item.linkedin}</Text> : null}
+        {item.linkedin ? <Text style={[styles.contactPhone, isDarkMode && styles.darkSubtext]}>LinkedIn: {getLinkedInUsername(item.linkedin)}</Text> : null}
         {item.instagram ? <Text style={[styles.contactPhone, isDarkMode && styles.darkSubtext]}>Instagram: {item.instagram}</Text> : null}
-        {item.website ? <Text style={[styles.contactPhone, isDarkMode && styles.darkSubtext]}>Website: {item.website}</Text> : null}
       </View>
     </TouchableOpacity>
   ));
@@ -558,41 +628,115 @@ export default function App() {
       Alert.alert('Copied', `${label} copied to clipboard`);
     };
 
+    const openLinkedIn = async (linkedinUrl) => {
+      try {
+        // Check if URL already includes http/https
+        let url = linkedinUrl;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'Cannot open LinkedIn profile');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to open LinkedIn profile');
+      }
+    };
+
+    const openInstagram = async (instagramHandle) => {
+      try {
+        // Remove @ if present
+        let handle = instagramHandle.replace('@', '');
+        
+        // Try to open Instagram app first
+        const appUrl = `instagram://user?username=${handle}`;
+        const canOpenApp = await Linking.canOpenURL(appUrl);
+        
+        if (canOpenApp) {
+          await Linking.openURL(appUrl);
+        } else {
+          // Fallback to web browser
+          const webUrl = `https://instagram.com/${handle}`;
+          await Linking.openURL(webUrl);
+        }
+      } catch (error) {
+        // If app fails, try web
+        try {
+          let handle = instagramHandle.replace('@', '');
+          const webUrl = `https://instagram.com/${handle}`;
+          await Linking.openURL(webUrl);
+        } catch (webError) {
+          Alert.alert('Error', 'Failed to open Instagram profile');
+        }
+      }
+    };
+
+    const openEmail = async (emailAddress) => {
+      try {
+        const emailUrl = `mailto:${emailAddress}`;
+        const canOpen = await Linking.canOpenURL(emailUrl);
+        
+        if (canOpen) {
+          await Linking.openURL(emailUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open email app');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to open email app');
+      }
+    };
+
+    const openPhone = async (phoneNumber) => {
+      try {
+        const phoneUrl = `tel:${phoneNumber}`;
+        const canOpen = await Linking.canOpenURL(phoneUrl);
+        
+        if (canOpen) {
+          await Linking.openURL(phoneUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open phone dialer');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to open phone dialer');
+      }
+    };
+
     const contactInfoItems = [
       { 
         icon: '📞', 
         label: 'Phone', 
         value: contact.phone, 
-        action: () => {},
+        displayValue: contact.phone,
+        action: () => openPhone(contact.phone),
         onLongPress: () => copyToClipboard(contact.phone, 'Phone number')
       },
       { 
         icon: '✉️', 
         label: 'Email', 
         value: contact.email, 
-        action: () => {},
+        displayValue: contact.email,
+        action: () => openEmail(contact.email),
         onLongPress: () => copyToClipboard(contact.email, 'Email address')
       },
       { 
         icon: '💼', 
         label: 'LinkedIn', 
         value: contact.linkedin, 
-        action: () => {},
+        displayValue: getLinkedInUsername(contact.linkedin),
+        action: () => openLinkedIn(contact.linkedin),
         onLongPress: () => copyToClipboard(contact.linkedin, 'LinkedIn profile')
       },
       { 
         icon: '📷', 
         label: 'Instagram', 
         value: contact.instagram, 
-        action: () => {},
+        displayValue: contact.instagram,
+        action: () => openInstagram(contact.instagram),
         onLongPress: () => copyToClipboard(contact.instagram, 'Instagram handle')
-      },
-      { 
-        icon: '🌐', 
-        label: 'Website', 
-        value: contact.website, 
-        action: () => {},
-        onLongPress: () => copyToClipboard(contact.website, 'Website URL')
       }
     ].filter(item => item.value);
 
@@ -613,7 +757,7 @@ export default function App() {
           </View>
 
           <View style={[styles.contactCard, isDarkMode && styles.darkContactCard]}>
-            <View style={styles.contactCardHeader}>
+            <View style={[styles.contactCardHeader, isDarkMode && styles.darkContactCardHeader]}>
               <View style={styles.contactDetailAvatar}>
                 <Text style={styles.contactDetailAvatarText}>
                   {contact.name.charAt(0).toUpperCase()}
@@ -648,7 +792,7 @@ export default function App() {
                       {item.label}
                     </Text>
                     <Text style={[styles.contactInfoValue, isDarkMode && styles.darkContactInfoValue]}>
-                      {item.value}
+                      {item.displayValue || item.value}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -743,7 +887,6 @@ export default function App() {
     const [editEmail, setEditEmail] = useState(userProfile.email);
     const [editLinkedin, setEditLinkedin] = useState(userProfile.linkedin);
     const [editInstagram, setEditInstagram] = useState(userProfile.instagram);
-    const [editWebsite, setEditWebsite] = useState(userProfile.website);
 
     const handleSave = () => {
       setUserProfile({ 
@@ -751,8 +894,7 @@ export default function App() {
         phone: editPhone, 
         email: editEmail, 
         linkedin: editLinkedin, 
-        instagram: editInstagram, 
-        website: editWebsite 
+        instagram: editInstagram
       });
     };
 
@@ -820,16 +962,6 @@ export default function App() {
             placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
             value={editInstagram}
             onChangeText={setEditInstagram}
-            autoCorrect={false}
-            autoCapitalize="none"
-          />
-          
-          <TextInput
-            style={[styles.input, isDarkMode && styles.darkInput]}
-            placeholder="Website URL"
-            placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
-            value={editWebsite}
-            onChangeText={setEditWebsite}
             autoCorrect={false}
             autoCapitalize="none"
           />
