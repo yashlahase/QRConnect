@@ -706,4 +706,19 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
   },
+  
+  // Delete Button Styles
+  deleteButton: {
+    backgroundColor: '#B04B38',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

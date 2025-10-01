@@ -628,6 +628,30 @@ export default function App() {
       Alert.alert('Copied', `${label} copied to clipboard`);
     };
 
+    const handleDeleteContact = () => {
+      Alert.alert(
+        'Delete Contact',
+        `Are you sure you want to delete ${contact.name}?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              setContacts(prevContacts => 
+                prevContacts.filter(c => c.id !== contact.id)
+              );
+              Alert.alert('Contact Deleted', `${contact.name} has been removed from your contacts.`);
+              onBack();
+            }
+          }
+        ]
+      );
+    };
+
     const openLinkedIn = async (linkedinUrl) => {
       try {
         // Check if URL already includes http/https
@@ -798,6 +822,14 @@ export default function App() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={handleDeleteContact}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.deleteButtonText}>🗑️ Delete Contact</Text>
+            </TouchableOpacity>
 
           </View>
         </ScrollView>
