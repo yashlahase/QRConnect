@@ -18,7 +18,7 @@ In today’s digital era, there is a need for a simple, eco-friendly, and instan
 ---
 
 ## 4. Proposed Solution / Idea
-QRConnect is a mobile app that allows users to create a **digital visiting card** by filling in their details such as name, phone number, email, LinkedIn, Instagram, and personal website.  
+QRConnect is a mobile app that allows users to create a **digital visiting card** by filling in their details such as name, phone number, email, Instagram and LinkedIn.  
 The app generates a **unique QR code** for each user, which can be scanned by others (who also have the app installed) to instantly view and save their contact details.  
 
 ---
