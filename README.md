@@ -134,8 +134,8 @@ The successful deployment of QRConnect will result in a robust mobile app that:
 
 The Minimum Viable Product (MVP) focuses on offline QR scanning.
 **Future versions could include:**
-    - * 🔐 **Login & Account System:** Google / Email login for cloud backup and syncing.
-   - * ☁️ **Cloud Sync:** For backing up contacts and profile across multiple devices.
-   - * 🎨 **Custom Branding:** Ability to add a company logo or customize the QR code design.
-   - * 📊 **Analytics:** Tracking the number of times the digital card/QR code has been scanned.
-   - * 🔗 **NFC-based Contact Sharing:** Implementing tap-to-share functionality.
+     * 🔐 **Login & Account System:** Google / Email login for cloud backup and syncing.
+     * ☁️ **Cloud Sync:** For backing up contacts and profile across multiple devices.
+     * 🎨 **Custom Branding:** Ability to add a company logo or customize the QR code design.
+     * 📊 **Analytics:** Tracking the number of times the digital card/QR code has been scanned.
+     * 🔗 **NFC-based Contact Sharing:** Implementing tap-to-share functionality.
