@@ -132,7 +132,8 @@ The successful deployment of QRConnect will result in a robust mobile app that:
 
 ## 10. Future Enhancements (Optional) 🚀
 
-The Minimum Viable Product (MVP) focuses on offline QR scanning. Future versions could include:
+The Minimum Viable Product (MVP) focuses on offline QR scanning.
+**Future versions could include:**
 * 🔐 **Login & Account System:** Google / Email login for cloud backup and syncing.
 * ☁️ **Cloud Sync:** For backing up contacts and profile across multiple devices.
 * 🎨 **Custom Branding:** Ability to add a company logo or customize the QR code design.
