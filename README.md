@@ -25,27 +25,28 @@ The app generates a **unique QR code** for each user, which can be scanned by ot
 
 ## 5. Key Features
 - 📱 **QR Code Contact Sharing** – Instantly generate and share your digital visiting card as a QR code.  
-- 📝 **Customizable Profile** – Add and update personal details like name, phone number, email, LinkedIn, Instagram, website, etc.  
+- 📝 **Customizable Profile** – Add and update personal details like name, phone number, email, LinkedIn and Instagram etc.  
 - ⚡ **One-Scan Save** – Person 2 scans Person 1’s QR code and instantly saves the details in the app.  
 - 🌐 **No Internet Required** – QR code scanning and data transfer works offline.  
 - 🌱 **Digital & Eco-Friendly** – Replace physical visiting cards with a digital solution.  
-- 📂 **Optional Export** – Save contact directly to the phonebook with one tap.  
+- 🔗 **Smart Action Buttons** – Tap phone, email, or social links to instantly open the respective app or website.
+- 📋 **Copy-to-Clipboard** – Long press on phone number, email, social URLs to copy this.
+  
 
 ---
 
 ## 6. Target Users / Audience
 - Professionals (business meetings, networking events)  
-- Students (sharing resumes, portfolios, LinkedIn)  
-- Freelancers (showcasing skills and social links)  
+- Students (student detail, LinkedIn, Instagram)   
 - General users (easy way to share contact info with friends/family)  
 
 ---
 
 ## 7. Technology Stack
 - **Frontend:** React Native  
-- **Backend:** (Optional for syncing) Node.js  
-- **Database:** SQLite (local), MySQL (optional for cloud storage)  
-- **APIs / Tools:** Expo CLI, React Native QRCode Generator, QRCode Scanner libraries  
+- **Backend:** None (pure offline app)
+- **Local Storage:** AsyncStorage (for saving user profile & contact details locally)  
+- **Tools:** Expo CLI, React Native QRCode Generator, QRCode Scanner libraries  
 - **Storage:** Local device storage for contact details  
 
 ---
@@ -66,7 +67,8 @@ It ensures **quick, eco-friendly, and professional contact sharing**.
 
 ## 10. Additional Notes (Optional)
 - The app MVP will work offline for QR scanning.  
-- Future versions may include:  
+- Future versions may include:
+  - 🔐 Login & Account System (Google / Email login for cloud backup & syncing) 
   - ☁️ Cloud sync for backup across devices  
   - 🎨 Custom branding (company logo on QR code)  
   - 📊 Analytics (track number of times QR is scanned)  
